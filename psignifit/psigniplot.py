@@ -14,6 +14,7 @@ import matplotlib.colors as _mcolors
 from matplotlib import cm as _cm
 from matplotlib.ticker import ScalarFormatter
 
+from .getSigmoidHandle import getSigmoidHandle
 from .marginalize import marginalize
 from . import utils as _utils
 
@@ -24,6 +25,7 @@ def plotPsych(result,
               lineWidth      = 2,
               xLabel         = 'Stimulus Level',
               yLabel         = 'Proportion Correct',
+              curve_label    = None,
               labelSize      = 15,
               fontSize       = 10,
               fontName       = 'Helvetica',
@@ -44,6 +46,10 @@ def plotPsych(result,
     fit = result['Fit']
     data = result['data']
     options = result['options']
+    
+    # Get sigmoid handle object if not present in options dictionary
+    if options.get('sigmoidHandle') is None:
+        options['sigmoidHandle'] = getSigmoidHandle(options)
     
     if axisHandle == None: axisHandle = plt.gca()
     try:
@@ -95,7 +101,7 @@ def plotPsych(result,
     fitValuesHigh = (1 - fit[2] - fit[3]) * options['sigmoidHandle'](xHigh, fit[0], fit[1]) + fit[3]
     fitValues     = (1 - fit[2] - fit[3]) * options['sigmoidHandle'](x,     fit[0], fit[1]) + fit[3]
     
-    plt.plot(x,     fitValues,           c=lineColor, lw=lineWidth, clip_on=False)
+    plt.plot(x,     fitValues,           c=lineColor, lw=lineWidth, clip_on=False, label=curve_label)
     plt.plot(xLow,  fitValuesLow,  '--', c=lineColor, lw=lineWidth, clip_on=False)
     plt.plot(xHigh, fitValuesHigh, '--', c=lineColor, lw=lineWidth, clip_on=False)
     
