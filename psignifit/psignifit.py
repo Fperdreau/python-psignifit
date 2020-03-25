@@ -250,8 +250,7 @@ def psignifit(data, optionsIn):
     else:
         options['borders'] = _b.setBorders(data,options)
     
-    border_idx = np.where(np.isnan(options['fixedPars']) == False);
-    print(border_idx)
+    border_idx = np.where(np.isnan(options['fixedPars']) == False)
     if (border_idx[0].size > 0):
         options['borders'][border_idx[0],0] = options['fixedPars'][border_idx[0]]
         options['borders'][border_idx[0],1] = options['fixedPars'][border_idx[0]]
