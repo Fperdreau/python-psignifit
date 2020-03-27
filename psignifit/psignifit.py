@@ -8,6 +8,7 @@ import datetime as _dt
 import warnings
 from copy import deepcopy as _deepcopy
 import scipy
+import scipy.stats as st
 
 from . import likelihood as _l
 from . import priors as _p
@@ -525,9 +526,9 @@ def getSlope(result, stimLevel):
         slope = slope/stimLevel
     elif sigName in ['tdist','student','heavytail','neg_tdist','neg_student','neg_heavytail']:
         # student T distribution with 1 df --> heavy tail distribution
-        C      = (my_t1icdf(1-alpha) - my_t1icdf(alpha))
-        stimLevel = (stimLevel-theta0[0])/theta0[1]*C+my_t1icdf(PC)
-        slope = C/theta0[1]*t.pdf(stimLevel,df=1)
+        C      = (_my_t1icdf(1-alpha) - _my_t1icdf(alpha))
+        stimLevel = (stimLevel-theta0[0])/theta0[1]*C+_my_t1icdf(PC)
+        slope = C/theta0[1]*st.pdf(stimLevel,df=1)
     else:
         raise ValueError('unknown sigmoid function')
 
@@ -618,7 +619,7 @@ def getSlopePC(result, pCorrect, unscaled = False):
         # student T distribution with 1 df --> heavy tail distribution
         C      = (_my_t1icdf(1-alpha) - _my_t1icdf(alpha))
         stimLevel = _my_t1icdf(pCorrectUnscaled)
-        slope = C/theta0[1]*t.pdf(stimLevel,df=1)
+        slope = C/theta0[1]*st.t.pdf(stimLevel,df=1)
     else:
         raise ValueError('unknown sigmoid function')
 
