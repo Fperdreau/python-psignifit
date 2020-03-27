@@ -866,6 +866,90 @@ def getDeviance(result,Nsamples=None):
         return devianceResiduals,deviance,samples_devianceResiduals,samples_deviance
 
 
+def getStandardParameters(theta, sigmoid_type, width_alpha=0.5):
+    """
+    this function transforms a parameter given in threshold, width to a
+    standard parameterization for comparison purposes
+
+    theta = parameter
+    type  = Name of the Sigmoid
+
+    if you changed the width_alpha you should pass it as an additional
+    argument
+
+    Alternatively you can pass the result struct instead of the parameter
+    values. Then type and width_alpha are set automatically.
+
+    norm/gauss/normal
+          theta(1) = threshold -> threshold
+          theta(2) = width     -> standard deviation
+    logistic
+          theta(1) = threshold -> threshold
+          theta(2) = width     -> slope at threshold
+    Weibull/weibull
+          theta(1) = threshold -> scale
+          theta(2) = width     -> shape parameter
+    gumbel & rgumbel distributions
+          theta(1) = threshold -> mode
+          theta(2) = width     -> scale
+    tdist
+          theta(1) = threshold -> threshold/mean
+          theta(2) = width     -> standard deviation
+
+    For negative slope sigmoids we return the exact same parameters as for
+    the positive ones.
+
+    :param theta: parameter
+    :param sigmoid_type: Name of the Sigmoid
+    :param width_alpha: variance scaling factor
+    :return:
+    """
+
+    if isinstance(theta, dict):
+        width_alpha = theta['options']['widthalpha']
+        sigmoid_type = theta['options']['sigmoidName']
+        if theta['options']['threshPC'] != .5:
+            if theta['options']['logspace']:
+                theta['Fit'][0] = np.log(getThreshold(theta, .5, True))
+            else:
+                theta['Fit'][0] = getThreshold(theta, .5, True)
+        theta = theta['Fit']
+
+    if len(theta) == 5:
+        theta = theta.flatten()
+
+        if sigmoid_type in ['norm', 'gauss', 'neg_norm', 'neg_gauss']:
+            theta[0] = theta[0]
+            c = _my_norminv(1 - width_alpha, 0, 1) - _my_norminv(width_alpha, 0, 1)
+            theta[1] = theta[1] / c
+        elif sigmoid_type in ['logistic', 'neg_logistic']:
+            theta[0] = theta[0]
+            theta[1] = 2 * np.log(1. / width_alpha - 1) / theta[1]
+        elif sigmoid_type in ['Weibull', 'weibull', 'neg_Weibull', 'neg_weibull']:
+            c = np.log(-np.log(width_alpha)) - np.log(-np.log(1 - width_alpha))
+            shape = c / theta[1]
+            scale = np.exp(c / theta[1] * (-theta[0]) + np.log(-np.log(.5)))
+            scale = np.exp(np.log(1 / scale) / shape)  # Wikipediascale
+            theta[0] = scale
+            theta[1] = shape
+        elif sigmoid_type in ['gumbel', 'neg_gumbel']:
+            # note that gumbel and reversed gumbel definitions are sometimes swapped
+            # and sometimes called extreme value distributions
+            c = np.log(-np.log(width_alpha)) - np.log(-np.log(1 - width_alpha))
+            theta[1] = theta[1] / c
+            theta[0] = theta[0] - theta[1] * np.log(-np.log(.5))
+        elif sigmoid_type in ['rgumbel', 'neg_rgumbel']:
+            c = np.log(-np.log(1 - width_alpha)) - np.log(-np.log(width_alpha))
+            theta[1] = -theta[1] / c
+            theta[0] = theta[0] + theta[1] * np.log(-np.log(.5))
+        elif sigmoid_type in ['tdist', 'student', 'heavytail', 'neg_tdist', 'neg_student', 'neg_heavytail']:
+            c = (_my_t1icdf(1 - width_alpha) - _my_t1icdf(width_alpha))
+            theta[0] = theta[0]
+            theta[1] = theta[1] / c
+
+        return theta
+
+
 if __name__ == "__main__":
     import sys
     psignifit(sys.argv[1], sys.argv[2])
